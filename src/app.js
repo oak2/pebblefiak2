@@ -58,29 +58,33 @@ function locationSuccess(pos) {
 										entry: entry
                 });
             });
-						fiokok.sort(distanceComparator);
-            var fiokokMenu = new UI.Menu({
-                sections: [{
-                    title: 'Fiókok és ATM-ek a közelben',
-										style: 'small',
-                    items: fiokok
-                }]
-            });
-            fiokokMenu.show();
-						main.hide();
-						Vibe.vibrate('short');
-						log('Data on screen.', []);
-						
-						fiokokMenu.on('select', function(event) {
-							log('event index ', [event.itemIndex]);
-							var selected = fiokok[event.itemIndex];
-							var detailCard = new UI.Card({
-								title: selected.title,
-								scrollable: true,
-								body: selected.entry.type=='BRANCH' ? bodyCreatorBranch(selected.entry) : bodyCreatorATM(selected.entry)
+						if(fiokok.length) {
+							fiokok.sort(distanceComparator);
+							var fiokokMenu = new UI.Menu({
+									sections: [{
+											title: 'Közeli fiókok és ATM-ek',
+											style: 'small',
+											items: fiokok
+									}]
 							});
-							detailCard.show();
-						});
+							fiokokMenu.show();
+							main.hide();
+							Vibe.vibrate('short');
+							log('Data on screen.', []);
+
+							fiokokMenu.on('select', function(event) {
+								log('event index ', [event.itemIndex]);
+								var selected = fiokok[event.itemIndex];
+								var detailCard = new UI.Card({
+									title: selected.entry.zipCode + ' ' + selected.entry.town + ',\n' + selected.title,
+									scrollable: true,
+									body: selected.entry.type=='BRANCH' ? bodyCreatorBranch(selected.entry) : bodyCreatorATM(selected.entry)
+								});
+								detailCard.show();
+							});
+						} else {
+							main.body('Sajnos nincs a közeledben fiók, vagy ATM.');
+						}
         },
         function(error) {
             log('The ajax request failed', [error]);
