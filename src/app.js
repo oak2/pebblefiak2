@@ -1,5 +1,5 @@
 var EMULATOR = {
-	enabled: true,
+	enabled: false,
 	latitude: 47.497912,
 	longitude: 19.040235
 };
