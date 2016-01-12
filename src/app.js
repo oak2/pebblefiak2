@@ -1,6 +1,16 @@
+var EMULATOR = {
+	enabled: true,
+	latitude: 47.497912,
+	longitude: 19.040235
+};
+
 var UI = require('ui');
 var ajax = require('ajax');
 var Vibe = require('ui/vibe');
+
+var log = function(msg, params) {
+	console.log(new Date() + ': ' + msg + ' [' + params.join() + '].');	
+};
 
 var main = new UI.Card({
     title: 'OTP Bank',
@@ -14,27 +24,22 @@ var locationOptions = {
     timeout: 10000
 };
 
-console.log(new Date() + ' Starting fiak application...');
+log('Starting fiak application. Emulator mode:', [EMULATOR.enabled]);
 main.show();
 navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
 
 function locationSuccess(pos) {
-		main.body('Közeli filókok és ATM-ek listája');
-    console.log(new Date() + ' lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
     var params = {
 				"language": "hu",
         "type": "ALL",
 				"atmCurrency":"348", //Ft
-        "latitude": pos.coords.latitude,
-        "longitude": pos.coords.longitude,
+				"latitude": EMULATOR.enabled ? EMULATOR.latitude : pos.coords.latitude,
+        "longitude": EMULATOR.enabled ? EMULATOR.longitude : pos.coords.longitude,
         "services": [1],
 				"atmAvailability": "HozzáF1",
 				"branchServiceType": "lak"
     };
-      //  "latitude":pos.coords.latitude,
-      //  "longitude": pos.coords.longitude,
-      //  "latitude": 47.497912,
-      //  "longitude": 19.040235,
+    log('Latitude, longitude', [params.latitude, params.longitude]);
     ajax({
             url: 'http://otp.active.hu/search',
             method: 'post',
@@ -45,18 +50,9 @@ function locationSuccess(pos) {
         function(result) {
             var fiokok = [];
             result.forEach(function(entry) {
-							var d = distance(entry.lat, entry.lng, pos.coords.latitude, pos.coords.longitude);
-							//	var d = distance(entry.lat, entry.lng, 47.497912, 19.040235);
-								//console.log(JSON.stringify(entry));
-                var subtitle;
-                if(entry.type=='BRANCH') {
-                  subtitle = '(f)';
-                } else {
-                  subtitle = '(a)';
-                }
-                subtitle += '(' + distanceText(d) +')' + entry.zipCode + ' ' + entry.town;
+								var d = distance(entry.lat, entry.lng, params.latitude, params.longitude);
                 fiokok.push({
-                    subtitle: subtitle,
+                    subtitle: subtitleCreator(entry, d),
                     title: entry.address,
 									  distance: d,
 										branchAtm: entry
@@ -70,12 +66,12 @@ function locationSuccess(pos) {
                 }]
             });
             fiokokMenu.show();
+						main.hide();
 						Vibe.vibrate('short');
-						console.log(new Date() + ' data on screen.');
+						log('Data on screen.', []);
 						
 						fiokokMenu.on('select', function(event) {
-							console.log('event index ' + event.itemIndex);
-							//console.log('event ' + JSON.stringify(event));
+							log('event index ', [event.itemIndex]);
 							var selected = fiokok[event.itemIndex];
 							var detailCard = new UI.Card({
 								title: selected.title,
@@ -85,8 +81,7 @@ function locationSuccess(pos) {
 							detailCard.show();
 						});
 						fiokokMenu.on('back', function(event) {
-							console.log('event back' + event);
-							//console.log('event ' + JSON.stringify(event));
+							log('event back', [event]);
 							var selected = fiokok[event.itemIndex];
 							var detailCard = new UI.Card({
 								title: selected.title,
@@ -97,15 +92,15 @@ function locationSuccess(pos) {
 						});
         },
         function(error) {
-            console.log(new Date() + ' The ajax request failed: ' + error);
+            log('The ajax request failed', [error]);
             main.body('Sajnos hiba történt.');
         }
     );
 }
 
 function locationError(err) {
-    console.log(new Date() + ' location error (' + err.code + '): ' + err.message);
-		main.body('Nem sikerült a pozíció letöltése.');
+		log('Location error: code, message', [err.code, err.message]);
+		main.body('Nem sikerült a pozíció meghatározása.');
 }
 
 function distance(lat1, lon1, lat2, lon2) {
@@ -141,4 +136,14 @@ function bodyCreatorBranch(b) {
 
 function bodyCreatorATM(a) {
 	return a.address;
+}
+
+function subtitleCreator(entry, distance) {
+	var subtitle;
+	if(entry.type=='BRANCH') {
+		subtitle = '(f)';
+	} else {
+		subtitle = '(a)';
+	}
+	return subtitle + '(' + distanceText(distance) +')' + entry.zipCode + ' ' + entry.town;
 }
