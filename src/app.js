@@ -55,13 +55,14 @@ function locationSuccess(pos) {
                     subtitle: subtitleCreator(entry, d),
                     title: entry.address,
 									  distance: d,
-										branchAtm: entry
+										entry: entry
                 });
             });
 						fiokok.sort(distanceComparator);
             var fiokokMenu = new UI.Menu({
                 sections: [{
                     title: 'Fiókok és ATM-ek a közelben',
+										style: 'small',
                     items: fiokok
                 }]
             });
@@ -76,17 +77,7 @@ function locationSuccess(pos) {
 							var detailCard = new UI.Card({
 								title: selected.title,
 								scrollable: true,
-								body: selected.type=='BRANCH' ? bodyCreatorBranch(selected) : bodyCreatorATM(selected)
-							});
-							detailCard.show();
-						});
-						fiokokMenu.on('back', function(event) {
-							log('event back', [event]);
-							var selected = fiokok[event.itemIndex];
-							var detailCard = new UI.Card({
-								title: selected.title,
-								scrollable: true,
-								body: selected.type=='BRANCH' ? bodyCreatorBranch(selected) : bodyCreatorATM(selected)
+								body: selected.entry.type=='BRANCH' ? bodyCreatorBranch(selected.entry) : bodyCreatorATM(selected.entry)
 							});
 							detailCard.show();
 						});
@@ -131,19 +122,26 @@ function distanceText(d) {
 }
 
 function bodyCreatorBranch(b) {
-	return b.address;
+	return '\nH: ' + openingCreator(b.openingHours[0]) +
+					'\nK: ' + openingCreator(b.openingHours[1]) +
+					'\nSz: ' + openingCreator(b.openingHours[2]) +
+					'\nCs: ' + openingCreator(b.openingHours[3]) +
+					'\nP: ' + openingCreator(b.openingHours[4]) +
+					'\nSzo: ' + openingCreator(b.openingHours[5]) +
+					'\nV: ' + openingCreator(b.openingHours[6]) +
+					'\nTel.: ' + b.tel + 
+					'\n' + b.comment;
 }
 
 function bodyCreatorATM(a) {
-	return a.address;
+	console.log(JSON.stringify(a));
+	return 'Hozzáférhetőség: ' + a.availability;
 }
 
 function subtitleCreator(entry, distance) {
-	var subtitle;
-	if(entry.type=='BRANCH') {
-		subtitle = '(f)';
-	} else {
-		subtitle = '(a)';
-	}
-	return subtitle + '(' + distanceText(distance) +')' + entry.zipCode + ' ' + entry.town;
+	return (entry.type=='BRANCH'?'*':'•') + ' ' + distanceText(distance) +' - ' + entry.zipCode + ' ' + entry.town;
+}
+
+function openingCreator(oh) {
+	return oh ? oh : '-';
 }
